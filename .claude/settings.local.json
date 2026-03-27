@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(for d:*)",
+      "Bash(do)",
+      "Bash(touch /Users/kevinyeom/repositories/auto_trading/src/$d/__init__.py)",
+      "Bash(done)",
+      "WebSearch",
+      "Bash(git clone:*)",
+      "Bash(chmod +x /Users/kevinyeom/repositories/auto_trading/setup.sh /Users/kevinyeom/repositories/auto_trading/cron/run_daily.sh)"
+    ]
+  }
+}

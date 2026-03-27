@@ -1,0 +1,24 @@
+# TradingAgents + LangGraph
+langgraph
+langchain
+langchain-core
+
+# LLM (OpenRouter uses OpenAI-compatible API)
+openai
+
+# Brokerage
+alpaca-trade-api
+
+# Market data
+requests
+finnhub-python
+
+# Technical analysis
+pandas
+pandas-ta
+
+# Config + environment
+python-dotenv
+pyyaml
+
+# Logging (logging and sqlite3 are built-in)

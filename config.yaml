@@ -1,0 +1,63 @@
+# === Ticker universe ===
+tickers:
+  equities:
+    - NVDA   # NVIDIA — Information Technology
+    - AAPL   # Apple — Information Technology
+    - GOOGL  # Alphabet — Communication Services
+    - MSFT   # Microsoft — Information Technology
+    - AMZN   # Amazon — Consumer Discretionary
+    - AVGO   # Broadcom — Information Technology
+    - TSM    # TSMC — Information Technology
+    - TSLA   # Tesla — Consumer Discretionary
+    - JPM    # JPMorgan — Financials
+    - META   # Meta — Communication Services
+    - BRK.B  # Berkshire Hathaway — Financials
+    - LLY    # Eli Lilly — Healthcare
+    - WMT    # Walmart — Consumer Staples
+    - V      # Visa — Financials
+    - UNH    # UnitedHealth — Healthcare
+  tickers_to_analyze_per_day: 8    # New opportunities only (existing positions always analyzed)
+
+# === GICS sector mapping (used for sector concentration constraint) ===
+sectors:
+  Information Technology: [NVDA, AAPL, MSFT, AVGO, TSM]
+  Communication Services: [GOOGL, META]
+  Consumer Discretionary: [AMZN, TSLA]
+  Financials: [JPM, BRK.B, V]
+  Healthcare: [LLY, UNH]
+  Consumer Staples: [WMT]
+
+# === Portfolio rules ===
+conviction_threshold: 0.6         # Minimum conviction to enter a position
+max_position_pct: 0.15            # Max 15% of portfolio in any single position
+cash_reserve_pct: 0.15            # Always keep 15% cash
+max_sector_pct: 0.30              # Max 30% in any GICS sector
+
+# === Risk management ===
+stop_loss_pct: 0.08               # Sell if position drops 8% from entry
+portfolio_drawdown_limit_pct: 0.15 # Pause all trading if portfolio drops 15% from peak
+
+# === Execution ===
+order_type: "market"              # "market" or "limit" (limit uses last close price)
+paper_trading: true               # true = paper trading, false = live trading
+
+# === Research settings ===
+max_debate_rounds: 1              # Number of bull/bear debate rounds
+max_daily_research_runs: 15       # Hard cap on total TradingAgents runs per day
+llm_provider: "openrouter"
+analyst_model: "google/gemini-3.1-flash-lite-preview"   # Cheap model for analyst agents
+trader_model: "google/gemini-3-flash-preview"            # Better model for debate + trader + risk
+
+# === Screener settings ===
+screener_momentum_weight: 0.6     # Weight for 30-day price momentum in ranking
+screener_volume_weight: 0.4       # Weight for 10-day relative volume in ranking
+
+# === Schedule ===
+run_time_et: "16:30"              # 4:30pm ET, after market close
+
+# === Notifications ===
+email_enabled: true
+email_to: ""                      # Recipient email address
+email_from: ""                    # Gmail address used to send
+smtp_server: "smtp.gmail.com"
+smtp_port: 587
