@@ -139,14 +139,4 @@ auto-trader/
 
 - Analysts (Gemini 3.1 Flash Lite): ~$0.08/day
 - Trader + risk manager (Gemini 3 Flash): ~$0.30/day
-- **Total: ~$8–12/month** well within the $15–30 budget
-
-## Open items (complete before first run)
-
-- [ ] Gmail 2FA + app password
-- [ ] Alpaca account + API keys (start with paper trading)
-- [ ] OpenRouter account + ~$10 credits
-- [ ] Alpha Vantage free API key
-- [ ] Finnhub free API key
-- [ ] DigitalOcean droplet provisioned (1GB/1vCPU Ubuntu 24.04)
-- [ ] Fill in `email_to` / `email_from` in `config.yaml`
+- **Total: ~$8–12/month**
