@@ -18,20 +18,9 @@ tickers:
     - UNH    # UnitedHealth — Healthcare
   tickers_to_analyze_per_day: 8    # New opportunities only (existing positions always analyzed)
 
-# === GICS sector mapping (used for sector concentration constraint) ===
-sectors:
-  Information Technology: [NVDA, AAPL, MSFT, AVGO, TSM]
-  Communication Services: [GOOGL, META]
-  Consumer Discretionary: [AMZN, TSLA]
-  Financials: [JPM, BRK.B, V]
-  Healthcare: [LLY, UNH]
-  Consumer Staples: [WMT]
-
 # === Portfolio rules ===
 conviction_threshold: 0.6         # Minimum conviction to enter a position
-max_position_pct: 0.15            # Max 15% of portfolio in any single position
 cash_reserve_pct: 0.15            # Always keep 15% cash
-max_sector_pct: 0.30              # Max 30% in any GICS sector
 
 # === Risk management ===
 stop_loss_pct: 0.08               # Sell if position drops 8% from entry
@@ -57,7 +46,7 @@ run_time_et: "16:30"              # 4:30pm ET, after market close
 
 # === Notifications ===
 email_enabled: true
-email_to: ""                      # Recipient email address
-email_from: ""                    # Gmail address used to send
+email_to: "jungyeom0213@gmail.com"                      # Recipient email address
+email_from: "jungyeom0213@gmail.com"                    # Gmail address used to send
 smtp_server: "smtp.gmail.com"
 smtp_port: 587

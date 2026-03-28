@@ -112,13 +112,23 @@ def _build_daily_body(
         for d in buys:
             lines.append(f"  {d['ticker']:<6} conviction={d.get('conviction', 0):.2f}")
             if d.get("thesis"):
-                lines.append(f"    Thesis: {d['thesis'][:120]}")
+                lines.append(f"    Thesis: {d['thesis']}")
+            if d.get("reasoning"):
+                lines.append(f"    Reasoning: {d['reasoning']}")
+            if d.get("invalidation_conditions"):
+                lines.append("    Sell if:")
+                for c in d["invalidation_conditions"]:
+                    lines.append(f"      - {c}")
         lines.append("")
 
     if sells:
         lines.append("=== SELL DECISIONS (thesis invalidation) ===")
         for d in sells:
             lines.append(f"  {d['ticker']:<6} conviction={d.get('conviction', 0):.2f}")
+            if d.get("reasoning"):
+                lines.append(f"    Reason: {d['reasoning']}")
+            if d.get("thesis"):
+                lines.append(f"    Original thesis: {d['thesis']}")
         lines.append("")
 
     if holds:

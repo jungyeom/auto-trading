@@ -1,1 +1,0 @@
-- [Auto-trader project overview](project_auto_trader.md) — LLM-agent trading system, goals, tech stack, 3-layer build plan

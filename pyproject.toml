@@ -1,0 +1,26 @@
+[project]
+name = "auto-trading"
+version = "0.1.0"
+requires-python = ">=3.12"
+dependencies = [
+    # Orchestration pipeline (src/)
+    "alpaca-trade-api>=3.0.0",
+    "finnhub-python>=2.4.0",
+    "pandas-ta>=0.3.14b",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0",
+    "langchain>=0.3.0",
+    "langchain-core>=0.3.81",
+    "requests>=2.32.4",
+    # TradingAgents subpackage (workspace member)
+    "tradingagents",
+]
+
+[tool.uv.workspace]
+members = ["tradingagents"]
+
+[tool.uv.sources]
+tradingagents = { workspace = true }
+
+[tool.uv]
+override-dependencies = ["websockets>=13.0"]

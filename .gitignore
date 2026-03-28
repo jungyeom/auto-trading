@@ -2,8 +2,21 @@
 .env
 
 # Cache and logs
-data/cache/
+data/
 logs/
+
+# Generated output
+eval_results/
+
+# Package management
+.venv/
+
+# Claude Code
+.claude/
+memory/
+
+# Deployment scripts (VPS-specific)
+cron/
 
 # Python
 venv/

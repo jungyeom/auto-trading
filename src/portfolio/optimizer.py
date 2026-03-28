@@ -9,9 +9,7 @@ Rules (applied in order):
   2. Process all "sell" decisions first (existing positions only).
   3. For "buy" decisions, compute target allocation:
        target_size = (total_equity * (1 - cash_reserve_pct)) / num_total_active_positions
-  4. Cap each position at max_position_pct.
-  5. Reject any buy that would push a GICS sector over max_sector_pct of total_equity.
-  6. For buys: place notional (dollar-based) order for the gap between target and current value.
+  4. For buys: place notional (dollar-based) order for the gap between target and current value.
      If the position doesn't exist yet, the full target_size is the order amount.
 """
 
@@ -81,7 +79,6 @@ def optimize_portfolio(
     # Step 4: Compute target per-position size
     investable = portfolio.total_equity * (1 - config.cash_reserve_pct)
     target_size = investable / num_positions
-    target_size = min(target_size, portfolio.total_equity * config.max_position_pct)
 
     logger.info(
         "Optimizer: %d active positions, target_size=%.2f, investable=%.2f",
@@ -90,30 +87,8 @@ def optimize_portfolio(
         investable,
     )
 
-    # Step 5: Sector constraint check — compute current sector exposure (post-sells)
-    sector_exposure: Dict[str, float] = {}
-    for pos in portfolio.positions:
-        if pos.ticker in sell_tickers:
-            continue
-        sector = config.sector_for(pos.ticker)
-        sector_exposure[sector] = sector_exposure.get(sector, 0.0) + pos.market_value
-
-    # Step 6: Process each new buy, applying sector constraint
+    # Step 5: Process each new buy
     for ticker in new_buys:
-        sector = config.sector_for(ticker)
-        projected_sector = sector_exposure.get(sector, 0.0) + target_size
-        sector_pct = projected_sector / portfolio.total_equity
-
-        if sector_pct > config.max_sector_pct:
-            logger.warning(
-                "SECTOR LIMIT: skipping buy of %s — %s sector would be %.1f%% (limit %.1f%%)",
-                ticker,
-                sector,
-                sector_pct * 100,
-                config.max_sector_pct * 100,
-            )
-            continue
-
         # Check available cash
         already_committed = sum(o.dollar_amount or 0 for o in orders if o.action == "buy")
         available_cash = portfolio.cash - already_committed
@@ -127,7 +102,6 @@ def optimize_portfolio(
             continue
 
         orders.append(Order(ticker=ticker, action="buy", dollar_amount=target_size))
-        sector_exposure[sector] = sector_exposure.get(sector, 0.0) + target_size
         logger.info("BUY queued: %s $%.2f", ticker, target_size)
 
     return orders

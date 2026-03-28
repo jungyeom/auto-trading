@@ -128,6 +128,16 @@ class Store:
         )
         self._conn.commit()
 
+    def get_last_buy_date(self, ticker: str) -> Optional[str]:
+        """Return the date of the most recent successful buy for a ticker as 'YYYY-MM-DD', or None."""
+        row = self._conn.execute(
+            "SELECT timestamp FROM trades "
+            "WHERE ticker=? AND action='buy' AND status != 'error' "
+            "ORDER BY timestamp DESC LIMIT 1",
+            (ticker,),
+        ).fetchone()
+        return row["timestamp"][:10] if row else None
+
     def get_todays_trades(self) -> List[Dict]:
         """Return all trade records logged today (UTC date)."""
         today = datetime.now(timezone.utc).date().isoformat()

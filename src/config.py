@@ -4,8 +4,8 @@ All other modules import Config from here — no direct yaml/env reads elsewhere
 """
 
 import os
-from dataclasses import dataclass, field
-from typing import Dict, List
+from dataclasses import dataclass
+from typing import List
 
 import yaml
 from dotenv import load_dotenv
@@ -21,13 +21,10 @@ class TickerConfig:
 class Config:
     # --- Ticker universe ---
     tickers: TickerConfig
-    sectors: Dict[str, List[str]]
 
     # --- Portfolio rules ---
     conviction_threshold: float
-    max_position_pct: float
     cash_reserve_pct: float
-    max_sector_pct: float
 
     # --- Risk management ---
     stop_loss_pct: float
@@ -67,14 +64,6 @@ class Config:
     finnhub_api_key: str
     email_app_password: str
 
-    def sector_for(self, ticker: str) -> str:
-        """Return the GICS sector for a ticker, or 'Unknown' if not in the map."""
-        for sector, tickers in self.sectors.items():
-            if ticker in tickers:
-                return sector
-        return "Unknown"
-
-
 def load_config(config_path: str = "config.yaml") -> Config:
     """Load config.yaml and .env, return a validated Config object."""
     load_dotenv()
@@ -99,11 +88,8 @@ def load_config(config_path: str = "config.yaml") -> Config:
 
     return Config(
         tickers=tickers,
-        sectors=raw["sectors"],
         conviction_threshold=raw["conviction_threshold"],
-        max_position_pct=raw["max_position_pct"],
         cash_reserve_pct=raw["cash_reserve_pct"],
-        max_sector_pct=raw["max_sector_pct"],
         stop_loss_pct=raw["stop_loss_pct"],
         portfolio_drawdown_limit_pct=raw["portfolio_drawdown_limit_pct"],
         order_type=raw["order_type"],

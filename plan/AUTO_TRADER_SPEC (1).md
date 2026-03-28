@@ -104,9 +104,9 @@ Ranking logic (simple for v1):
 **This is the core — uses the forked TradingAgents repo (built on LangGraph).**
 
 **Research loop order:**
-1. **Existing positions first (thesis invalidation).** For every ticker with an open position, run the full TradingAgents pipeline. The trader agent receives the stored thesis and invalidation conditions as additional context. If the agent returns `action: "sell"`, this is a thesis invalidation exit.
+1. **Existing positions first (thesis invalidation).** For every ticker with an open position that was **bought more than 7 days ago**, run the full TradingAgents pipeline. The trader agent receives the stored thesis and invalidation conditions as additional context. If the agent returns `action: "sell"`, this is a thesis invalidation exit. Positions bought within the last 7 days are skipped — no immediate thesis review needed — freeing up LLM slots for new candidates.
 2. **New opportunities second.** For each ticker selected by the screener (Layer 2), run the full TradingAgents pipeline.
-3. **Hard cap.** The total number of TradingAgents runs per day must not exceed `max_daily_research_runs` (configurable, default 15). Existing positions always take priority. If the cap is reached, remaining new opportunity tickers are skipped.
+3. **Hard cap.** The total number of TradingAgents runs per day must not exceed `max_daily_research_runs` (configurable, default 15). Existing eligible positions always take priority. If the cap is reached, remaining new opportunity tickers are skipped.
 
 For each ticker, the pipeline calls `ta.propagate(ticker, date)`.
 
@@ -169,10 +169,10 @@ Logic (rules-based, no optimization library):
 2. Calculate target allocation:
    - Equal weight across all active positions (existing + new).
    - Target position size = `(total_equity * (1 - cash_reserve_pct)) / num_positions`.
-3. Apply hard constraints (reject or resize any allocation that violates):
-   - No single position > `max_position_pct` of portfolio (configurable, default 0.15).
-   - No more than `max_sector_pct` in any single GICS sector (configurable, default 0.30). See section 4 for the sector mapping.
+   - No single-position cap — a stock can represent up to 85% of the portfolio.
+3. Apply hard constraints (reject any allocation that violates):
    - Maintain at least `cash_reserve_pct` in cash (configurable, default 0.15).
+   - Skip a buy if available cash is less than 50% of the target position size.
 4. For "buy" decisions: calculate dollar amount to invest, submit as a notional (dollar-based) order. Alpaca handles fractional shares automatically.
 5. For "sell" decisions: sell entire position (all shares).
 6. For "hold" decisions: no action.
@@ -233,20 +233,9 @@ tickers:
     - UNH    # UnitedHealth — Healthcare
   tickers_to_analyze_per_day: 8    # New opportunities only (existing positions always analyzed)
 
-# === GICS sector mapping (used for sector concentration constraint) ===
-sectors:
-  Information Technology: [NVDA, AAPL, MSFT, AVGO, TSM]
-  Communication Services: [GOOGL, META]
-  Consumer Discretionary: [AMZN, TSLA]
-  Financials: [JPM, BRK.B, V]
-  Healthcare: [LLY, UNH]
-  Consumer Staples: [WMT]
-
 # === Portfolio rules ===
 conviction_threshold: 0.6         # Minimum conviction to enter a position
-max_position_pct: 0.15            # Max 15% of portfolio in any single position
-cash_reserve_pct: 0.15            # Always keep 15% cash
-max_sector_pct: 0.30              # Max 30% in any GICS sector
+cash_reserve_pct: 0.15            # Always keep 15% cash (no single-position or sector caps)
 
 # === Risk management ===
 stop_loss_pct: 0.08               # Sell if position drops 8% from entry
@@ -309,12 +298,14 @@ The TradingAgents framework is forked directly into this repo under `tradingagen
 
 ```
 auto-trader/
+├── pyproject.toml                 # uv workspace + dependencies (source of truth for local dev)
+├── uv.lock                        # Locked dependency versions
+├── requirements.txt               # Legacy dep list used by VPS setup.sh (pip-based)
 ├── config.yaml                    # All tunable parameters (see section 4)
 ├── .env                           # API credentials (gitignored)
 ├── .env.example                   # Template with required variable names (committed)
-├── requirements.txt               # Python dependencies
 ├── README.md                      # Setup instructions + how to run
-├── setup.sh                       # One-command setup: venv, deps, swap file creation
+├── setup.sh                       # VPS one-command setup: venv, pip install, swap file
 ├── .gitignore                     # .env, data/cache/, logs/, venv/, __pycache__/
 │
 ├── src/
@@ -357,7 +348,8 @@ auto-trader/
 │       ├── models.py              # SQLite table definitions (decisions, trades, portfolio_snapshots)
 │       └── store.py               # Read/write functions for the database
 │
-├── tradingagents/                  # Forked TradingAgents code (modified in place)
+├── tradingagents/                  # Forked TradingAgents code (uv workspace member)
+│   ├── pyproject.toml             # TradingAgents package definition
 │   ├── graph/
 │   │   └── trading_graph.py       # Main LangGraph graph definition
 │   ├── agents/                    # Agent definitions (analyst, researcher, trader, risk)
@@ -366,6 +358,8 @@ auto-trader/
 │
 ├── data/
 │   └── cache/                     # Cached API responses (gitignored)
+│
+├── eval_results/                   # TradingAgents per-ticker evaluation JSON output (gitignored)
 │
 ├── logs/
 │   ├── trades.db                  # SQLite database (gitignored)
@@ -431,14 +425,24 @@ def run_daily_pipeline():
     existing_tickers = [p.ticker for p in portfolio.positions]
     all_tickers = config.tickers.equities
 
+    # Skip existing positions bought within the last 7 days — no thesis review needed yet
+    cutoff = today - timedelta(days=7)
+    existing_to_research = [
+        t for t in existing_tickers
+        if (last := db.get_last_buy_date(t)) is None or last <= cutoff.isoformat()
+    ]
+    skipped = len(existing_tickers) - len(existing_to_research)
+    if skipped:
+        log(f"{skipped} existing position(s) skipped (bought within 7 days)")
+
     # Screen for new opportunities (excludes existing positions)
     new_opportunity_tickers = rank_tickers(
         [t for t in all_tickers if t not in existing_tickers],
         config
     )[:config.tickers_to_analyze_per_day]
 
-    # Research list: existing positions first, then new opportunities
-    research_list = existing_tickers + new_opportunity_tickers
+    # Research list: eligible existing positions first, then new opportunities
+    research_list = existing_to_research + new_opportunity_tickers
 
     # Apply hard cap
     research_list = research_list[:config.max_daily_research_runs]
@@ -583,9 +587,10 @@ python -m src.main 2>&1
 | Component | Technology | Notes |
 |-----------|-----------|-------|
 | Language | Python 3.12+ | |
+| Package manager | uv | Workspace with tradingagents as member; VPS uses pip + requirements.txt |
 | Agent framework | LangGraph (via forked TradingAgents) | Fork from latest main commit |
 | LLM provider | OpenRouter | Single API key |
-| LLM models | Gemini 3.1 Flash Lite (analysts) + Gemini 3 Flash (debate/trader/risk) | ~$25–32/month estimated |
+| LLM models | Gemini 3.1 Flash Lite (analysts) + Gemini 3 Flash (debate/trader/risk) | ~$8–12/month estimated |
 | Brokerage | Alpaca | Commission-free, paper + live, fractional shares |
 | Market data (equities) | Alpha Vantage | Free tier, 25 req/day |
 | News + sentiment | Finnhub | Free tier, 60 req/min |
@@ -598,43 +603,37 @@ python -m src.main 2>&1
 
 ---
 
-## 11. Key dependencies (requirements.txt)
+## 11. Key dependencies (pyproject.toml)
 
+Managed via `uv`. The root `pyproject.toml` declares dependencies; `tradingagents/` is a uv workspace member with its own `pyproject.toml`.
+
+```toml
+dependencies = [
+    "alpaca-trade-api>=3.0.0",
+    "finnhub-python>=2.4.0",
+    "pandas-ta>=0.3.14b",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0",
+    "langchain>=0.3.0",
+    "langchain-core>=0.3.81",
+    "requests>=2.32.4",
+    "tradingagents",           # workspace member
+]
+
+[tool.uv]
+override-dependencies = ["websockets>=13.0"]   # resolves alpaca-trade-api conflict
 ```
-# TradingAgents + LangGraph
-langgraph
-langchain
-langchain-core
 
-# LLM (OpenRouter uses OpenAI-compatible API)
-openai
-
-# Brokerage
-alpaca-trade-api
-
-# Market data
-requests
-finnhub-python
-
-# Technical analysis
-pandas
-pandas-ta
-
-# Config + environment
-python-dotenv
-pyyaml
-
-# Logging
-# (logging and sqlite3 are built-in)
-```
+`requirements.txt` exists as a legacy file for the VPS `setup.sh` (pip-based) but is not the source of truth.
 
 ---
 
 ## 12. Rollout plan
 
 ### Days 1–2: Foundation
-- Fork TradingAgents repo (latest main commit) into `tradingagents/` directory
+- Fork TradingAgents repo (latest main commit) into `tradingagents/` directory as a uv workspace member
 - Set up project structure (all files/folders listed in section 6)
+- Configure `pyproject.toml` as uv workspace root; run `uv sync` to install all deps
 - Implement `config.py` (load config.yaml + .env into a typed config object)
 - Implement `data/cache.py` (file-based cache with configurable TTL)
 - Implement `data/alpha_vantage.py` and `data/finnhub_client.py` with caching
@@ -645,13 +644,13 @@ pyyaml
 - Implement `screener/universe.py` (ticker ranking with configurable weights)
 - Implement `research/runner.py` (wrapper around TradingAgents propagate, handles existing vs new positions)
 - Modify TradingAgents fork: configure OpenRouter with tiered models, inject portfolio context + thesis into trader prompt, add thesis/invalidation to output schema, set debate rounds to 1
-- Implement `portfolio/optimizer.py` (equal-weight + constraints using sector mapping from config)
+- Implement `portfolio/optimizer.py` (equal-weight + cash reserve constraint; no position cap or sector limits)
 - Implement `risk/circuit_breaker.py` (stop-loss + drawdown, with cold start handling)
 - Implement `execution/alpaca_client.py` (notional buys, full-position sells, fractional shares)
 
 ### Days 5–6: Integration + deployment
 - Implement `main.py` (full pipeline orchestration exactly per section 7)
-- Write `setup.sh` (creates venv, installs deps, creates swap file, sets up cron)
+- Write `setup.sh` (VPS: creates venv, pip-installs requirements.txt, creates swap file, sets up cron)
 - Write `cron/run_daily.sh` (with EDT/EST guard)
 - Write basic tests for screener, optimizer, circuit breaker, alpaca client
 - Deploy to DigitalOcean droplet

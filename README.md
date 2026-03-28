@@ -18,7 +18,19 @@ Cron (4:30pm ET, Mon–Fri)
 
 Full spec: [plan/AUTO_TRADER_SPEC.md](plan/AUTO_TRADER_SPEC%20(1).md)
 
-## Setup (DigitalOcean droplet)
+## Setup
+
+### Local development (uv)
+
+```bash
+# Install uv if you don't have it
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Install all dependencies
+uv sync
+```
+
+### VPS deployment (DigitalOcean droplet)
 
 ```bash
 git clone <repo> auto-trader && cd auto-trader
@@ -26,7 +38,7 @@ bash setup.sh
 ```
 
 `setup.sh` will:
-1. Install Python 3.12 and create a virtual environment
+1. Install Python 3.12 and create a virtual environment (`venv/`)
 2. Install all dependencies (`requirements.txt`)
 3. Create a 1GB swap file (memory safety buffer for 1GB droplet)
 4. Print the two cron entries to add
@@ -61,9 +73,11 @@ All other parameters (thresholds, model names, ticker universe) are already set 
 ## Running
 
 ```bash
-# Test run (paper trading mode)
-source venv/bin/activate
-python -m src.main
+# Test run (paper trading mode) — local
+uv run python -m src.main
+
+# On VPS (after setup.sh)
+source venv/bin/activate && python -m src.main
 
 # Check logs
 tail -f logs/app.log
@@ -83,9 +97,7 @@ The shell script has an ET hour guard — only one entry fires per day.
 ## Running tests
 
 ```bash
-source venv/bin/activate
-pip install pytest
-pytest tests/ -v
+uv run pytest tests/ -v
 ```
 
 ## Switching to live trading
@@ -99,10 +111,12 @@ pytest tests/ -v
 
 ```
 auto-trader/
+├── pyproject.toml         # uv workspace + dependencies (source of truth)
+├── uv.lock                # Locked dependency versions
+├── requirements.txt       # Legacy dep list (used by VPS setup.sh only)
 ├── config.yaml            # All tunable parameters
 ├── .env                   # API credentials (gitignored)
-├── requirements.txt
-├── setup.sh               # One-command setup
+├── setup.sh               # VPS one-command setup (uses pip + venv)
 ├── src/
 │   ├── main.py            # Daily pipeline entry point
 │   ├── config.py          # Typed config loader
@@ -114,9 +128,10 @@ auto-trader/
 │   ├── notifications/     # Gmail alerts
 │   ├── data/              # Alpha Vantage + Finnhub clients + cache
 │   └── db/                # SQLite store
-├── tradingagents/         # Forked TradingAgents (LangGraph)
+├── tradingagents/         # Forked TradingAgents (LangGraph, uv workspace member)
 ├── cron/run_daily.sh      # Cron wrapper with EDT/EST guard
 ├── tests/                 # pytest tests
+├── eval_results/          # TradingAgents per-ticker evaluation output (gitignored)
 └── logs/                  # app.log, cron.log, trades.db (gitignored)
 ```
 

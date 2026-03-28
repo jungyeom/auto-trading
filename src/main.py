@@ -19,7 +19,7 @@ import logging
 import logging.handlers
 import os
 import sys
-from datetime import date
+from datetime import date, timedelta
 
 # Allow running as `python -m src.main` from project root
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -139,6 +139,16 @@ def run_daily_pipeline() -> None:
     all_tickers = config.tickers.equities
     new_candidates = [t for t in all_tickers if t not in existing_tickers]
 
+    # Skip existing positions bought within the last 7 days — no thesis review needed yet
+    cutoff = today - timedelta(days=7)
+    existing_to_research = [
+        t for t in existing_tickers
+        if (last := db.get_last_buy_date(t)) is None or last <= cutoff.isoformat()
+    ]
+    skipped_recent = len(existing_tickers) - len(existing_to_research)
+    if skipped_recent:
+        logger.info("%d existing position(s) skipped (bought within 7 days)", skipped_recent)
+
     # Rank new candidates by momentum + volume
     try:
         ranked_new = rank_tickers(new_candidates, config, av_client)
@@ -148,13 +158,13 @@ def run_daily_pipeline() -> None:
 
     new_opportunity_tickers = ranked_new[: config.tickers.tickers_to_analyze_per_day]
 
-    # Research list: existing positions first (thesis check), then new opps
-    research_list = existing_tickers + new_opportunity_tickers
+    # Research list: eligible existing positions first (thesis check), then new opps
+    research_list = existing_to_research + new_opportunity_tickers
     research_list = research_list[: config.max_daily_research_runs]  # hard cap
 
     logger.info(
         "Research targets: %d existing + %d new = %d total (cap: %d)",
-        len(existing_tickers),
+        len(existing_to_research),
         len(new_opportunity_tickers),
         len(research_list),
         config.max_daily_research_runs,
