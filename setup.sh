@@ -32,6 +32,8 @@ fi
 # ------------------------------------------------------------------
 if ! command -v uv &> /dev/null; then
     curl -LsSf https://astral.sh/uv/install.sh | sh
+    # Add uv to PATH for the rest of this script
+    export PATH="$HOME/.local/bin:$PATH"
     echo "uv installed."
 else
     echo "uv already installed — skipping."

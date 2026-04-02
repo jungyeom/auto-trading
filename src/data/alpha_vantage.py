@@ -17,6 +17,7 @@ GLOBAL_QUOTE calls (15 calls instead of 1 for the full universe).
 
 import logging
 import os
+import time
 from typing import Dict, List, Optional
 
 import requests
@@ -33,6 +34,7 @@ class AlphaVantageClient:
     def __init__(self, api_key: str):
         self._api_key = api_key
         self._use_global_quote = os.getenv("AV_USE_GLOBAL_QUOTE", "false").lower() == "true"
+        self._last_request_time: float = 0.0
 
     # ------------------------------------------------------------------
     # Price data
@@ -164,6 +166,10 @@ class AlphaVantageClient:
 
     def _get(self, params: Dict) -> Dict:
         try:
+            elapsed = time.time() - self._last_request_time
+            if elapsed < 3.0:
+                time.sleep(3.0 - elapsed)
+            self._last_request_time = time.time()
             resp = requests.get(AV_BASE_URL, params=params, timeout=30)
             resp.raise_for_status()
             data = resp.json()
