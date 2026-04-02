@@ -21,7 +21,6 @@ fi
 echo "$(date -u): Starting auto-trader pipeline..."
 
 cd /home/kevin/auto-trader
-source venv/bin/activate
-python -m src.main
+uv run python -m src.main
 
 echo "$(date -u): Pipeline finished."

@@ -34,12 +34,13 @@ uv sync
 
 ```bash
 git clone <repo> auto-trader && cd auto-trader
+git submodule update --init --recursive
 bash setup.sh
 ```
 
 `setup.sh` will:
-1. Install Python 3.12 and create a virtual environment (`venv/`)
-2. Install all dependencies (`requirements.txt`)
+1. Install Python 3.12 and uv
+2. Install all dependencies via `uv sync`
 3. Create a 1GB swap file (memory safety buffer for 1GB droplet)
 4. Print the two cron entries to add
 
@@ -77,7 +78,7 @@ All other parameters (thresholds, model names, ticker universe) are already set 
 uv run python -m src.main
 
 # On VPS (after setup.sh)
-source venv/bin/activate && python -m src.main
+uv run python -m src.main
 
 # Check logs
 tail -f logs/app.log
@@ -113,7 +114,6 @@ uv run pytest tests/ -v
 auto-trader/
 ├── pyproject.toml         # uv workspace + dependencies (source of truth)
 ├── uv.lock                # Locked dependency versions
-├── requirements.txt       # Legacy dep list (used by VPS setup.sh only)
 ├── config.yaml            # All tunable parameters
 ├── .env                   # API credentials (gitignored)
 ├── setup.sh               # VPS one-command setup (uses pip + venv)

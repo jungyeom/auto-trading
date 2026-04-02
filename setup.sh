@@ -10,7 +10,7 @@ echo "Setting up auto-trader in: $PROJECT_DIR"
 # 1. System packages
 # ------------------------------------------------------------------
 sudo apt-get update -y
-sudo apt-get install -y python3.12 python3.12-venv python3-pip git curl
+sudo apt-get install -y python3.12 git curl
 
 # ------------------------------------------------------------------
 # 2. 1GB swap file (memory safety buffer for 1GB droplet)
@@ -28,27 +28,31 @@ else
 fi
 
 # ------------------------------------------------------------------
-# 3. Python virtual environment
+# 3. Install uv
 # ------------------------------------------------------------------
-if [ ! -d "$PROJECT_DIR/venv" ]; then
-    python3.12 -m venv "$PROJECT_DIR/venv"
-    echo "Virtual environment created."
+if ! command -v uv &> /dev/null; then
+    curl -LsSf https://astral.sh/uv/install.sh | sh
+    echo "uv installed."
+else
+    echo "uv already installed — skipping."
 fi
 
-source "$PROJECT_DIR/venv/bin/activate"
-pip install --upgrade pip
-pip install -r "$PROJECT_DIR/requirements.txt"
+# ------------------------------------------------------------------
+# 4. Install dependencies
+# ------------------------------------------------------------------
+cd "$PROJECT_DIR"
+uv sync
 echo "Dependencies installed."
 
 # ------------------------------------------------------------------
-# 4. Create required directories (logs, cache)
+# 5. Create required directories (logs, cache)
 # ------------------------------------------------------------------
 mkdir -p "$PROJECT_DIR/logs"
 mkdir -p "$PROJECT_DIR/data/cache"
 mkdir -p "$PROJECT_DIR/data/cache/ta"
 
 # ------------------------------------------------------------------
-# 5. .env file
+# 6. .env file
 # ------------------------------------------------------------------
 if [ ! -f "$PROJECT_DIR/.env" ]; then
     cp "$PROJECT_DIR/.env.example" "$PROJECT_DIR/.env"
@@ -59,12 +63,12 @@ if [ ! -f "$PROJECT_DIR/.env" ]; then
 fi
 
 # ------------------------------------------------------------------
-# 6. Make scripts executable
+# 7. Make scripts executable
 # ------------------------------------------------------------------
 chmod +x "$PROJECT_DIR/cron/run_daily.sh"
 
 # ------------------------------------------------------------------
-# 7. Cron setup (print instructions — don't auto-add to avoid duplicates)
+# 8. Cron setup (print instructions — don't auto-add to avoid duplicates)
 # ------------------------------------------------------------------
 echo ""
 echo "=== CRON SETUP ==="
@@ -81,4 +85,4 @@ echo "Next steps:"
 echo "  1. Fill in $PROJECT_DIR/.env with your API keys"
 echo "  2. Fill in email_to / email_from in config.yaml"
 echo "  3. Add the cron entries above (crontab -e)"
-echo "  4. Test: source venv/bin/activate && python -m src.main"
+echo "  4. Test: cd $PROJECT_DIR && uv run python -m src.main"
