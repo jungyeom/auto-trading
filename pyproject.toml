@@ -23,5 +23,10 @@ members = ["tradingagents"]
 [tool.uv.sources]
 tradingagents = { workspace = true }
 
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
+
 [tool.uv]
 override-dependencies = ["websockets>=13.0"]
