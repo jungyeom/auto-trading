@@ -52,9 +52,6 @@ class Config:
     email_enabled: bool
     email_to: str
     email_from: str
-    smtp_server: str
-    smtp_port: int
-
     # --- From .env ---
     openrouter_api_key: str
     alpaca_api_key: str
@@ -62,7 +59,7 @@ class Config:
     alpaca_base_url: str
     alpha_vantage_api_key: str
     finnhub_api_key: str
-    email_app_password: str
+    sendgrid_api_key: str
 
 def load_config(config_path: str = "config.yaml") -> Config:
     """Load config.yaml and .env, return a validated Config object."""
@@ -105,13 +102,11 @@ def load_config(config_path: str = "config.yaml") -> Config:
         email_enabled=raw["email_enabled"],
         email_to=raw.get("email_to", ""),
         email_from=raw.get("email_from", ""),
-        smtp_server=raw["smtp_server"],
-        smtp_port=raw["smtp_port"],
         openrouter_api_key=_require_env("OPENROUTER_API_KEY"),
         alpaca_api_key=_require_env("ALPACA_API_KEY"),
         alpaca_secret_key=_require_env("ALPACA_SECRET_KEY"),
         alpaca_base_url=os.getenv("ALPACA_BASE_URL", "https://paper-api.alpaca.markets"),
         alpha_vantage_api_key=_require_env("ALPHA_VANTAGE_API_KEY"),
         finnhub_api_key=_require_env("FINNHUB_API_KEY"),
-        email_app_password=os.getenv("EMAIL_APP_PASSWORD", ""),
+        sendgrid_api_key=os.getenv("SENDGRID_API_KEY", ""),
     )

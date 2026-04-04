@@ -12,6 +12,7 @@ dependencies = [
     "langchain>=0.3.0",
     "langchain-core>=0.3.81",
     "requests>=2.32.4",
+    "sendgrid>=6.11.0",
     # TradingAgents subpackage (workspace member)
     "tradingagents",
 ]

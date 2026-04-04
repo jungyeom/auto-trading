@@ -1,5 +1,5 @@
 """
-Email notifications via Gmail SMTP.
+Email notifications via SendGrid.
 
 Two entry points:
   send_alert(subject, body, config)     — immediate alert (stop-loss, drawdown, order failure)
@@ -7,11 +7,11 @@ Two entry points:
 """
 
 import logging
-import smtplib
 from datetime import date
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from typing import Any, Dict, List, Optional
+
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 logger = logging.getLogger(__name__)
 
@@ -162,18 +162,16 @@ def _send(to: str, from_addr: str, subject: str, body: str, config: Any) -> None
         logger.warning("Email skipped — email_to or email_from not configured in config.yaml")
         return
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"] = from_addr
-    msg["To"] = to
-    msg.attach(MIMEText(body, "plain"))
+    message = Mail(
+        from_email=from_addr,
+        to_emails=to,
+        subject=subject,
+        plain_text_content=body,
+    )
 
     try:
-        with smtplib.SMTP(config.smtp_server, config.smtp_port) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(from_addr, config.email_app_password)
-            server.sendmail(from_addr, [to], msg.as_string())
-        logger.info("Email sent: %s", subject)
+        sg = SendGridAPIClient(config.sendgrid_api_key)
+        response = sg.send(message)
+        logger.info("Email sent: %s (status %s)", subject, response.status_code)
     except Exception as e:
         logger.error("Failed to send email '%s': %s", subject, e)
