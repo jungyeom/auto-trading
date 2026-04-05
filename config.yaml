@@ -47,4 +47,4 @@ run_time_et: "16:30"              # 4:30pm ET, after market close
 # === Notifications ===
 email_enabled: true
 email_to: "jungyeom0213@gmail.com"                      # Recipient email address
-email_from: "jungyeom0213@gmail.com"                    # Verified sender in SendGrid
+email_from: "jungyeom0213@gmail.com"                    # Verified sender in Brevo

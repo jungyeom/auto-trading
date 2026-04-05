@@ -12,8 +12,8 @@ Cron (4:30pm ET, Mon–Fri)
 2. Universe screener    — rank 15 tickers, pick top 8 new opportunities
 3. TradingAgents loop   — 4 analysts → bull/bear debate → trader → risk manager
 4. Portfolio optimizer  — equal-weight + hard constraints
-5. Execution            — notional buys, full-position sells via Alpaca
-6. Logging + email      — SQLite + daily SendGrid summary
+5. Execution            — notional buys, fVull-position sells via Alpaca
+6. Logging + email      — SQLite + daily Brevo email summary
 ```
 
 Full spec: [plan/AUTO_TRADER_SPEC.md](plan/AUTO_TRADER_SPEC%20(1).md)
@@ -57,7 +57,7 @@ ALPACA_SECRET_KEY=...
 ALPACA_BASE_URL=https://paper-api.alpaca.markets  # change to live when ready
 ALPHA_VANTAGE_API_KEY=...  # alphavantage.co (free tier)
 FINNHUB_API_KEY=...        # finnhub.io (free tier)
-SENDGRID_API_KEY=...       # sendgrid.com — free tier, verify sender identity first
+BREVO_API_KEY=...          # brevo.com — free tier (300 emails/day), verify sender first
 ```
 
 ### 2. Email + config — `config.yaml`
@@ -66,7 +66,7 @@ Edit `config.yaml` and fill in:
 
 ```yaml
 email_to: "you@example.com"
-email_from: "you@example.com"       # must be a verified sender in SendGrid
+email_from: "you@example.com"       # must be a verified sender in Brevo
 ```
 
 All other parameters (thresholds, model names, ticker universe) are already set to spec defaults.
@@ -125,7 +125,7 @@ auto-trader/
 │   ├── portfolio/         # Equal-weight optimizer
 │   ├── execution/         # Alpaca client
 │   ├── risk/              # Stop-loss + drawdown checks
-│   ├── notifications/     # SendGrid email alerts
+│   ├── notifications/     # Brevo email alerts
 │   ├── data/              # Alpha Vantage + Finnhub clients + cache
 │   └── db/                # SQLite store
 ├── tradingagents/         # Forked TradingAgents (LangGraph, uv workspace member)

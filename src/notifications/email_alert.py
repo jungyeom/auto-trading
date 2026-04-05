@@ -1,5 +1,5 @@
 """
-Email notifications via SendGrid.
+Email notifications via Brevo.
 
 Two entry points:
   send_alert(subject, body, config)     — immediate alert (stop-loss, drawdown, order failure)
@@ -10,8 +10,7 @@ import logging
 from datetime import date
 from typing import Any, Dict, List, Optional
 
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -157,21 +156,28 @@ def _build_daily_body(
     return "\n".join(lines)
 
 
+_BREVO_URL = "https://api.brevo.com/v3/smtp/email"
+
+
 def _send(to: str, from_addr: str, subject: str, body: str, config: Any) -> None:
     if not to or not from_addr:
         logger.warning("Email skipped — email_to or email_from not configured in config.yaml")
         return
 
-    message = Mail(
-        from_email=from_addr,
-        to_emails=to,
-        subject=subject,
-        plain_text_content=body,
-    )
+    payload = {
+        "sender": {"email": from_addr},
+        "to": [{"email": to}],
+        "subject": subject,
+        "textContent": body,
+    }
+    headers = {
+        "api-key": config.brevo_api_key,
+        "content-type": "application/json",
+    }
 
     try:
-        sg = SendGridAPIClient(config.sendgrid_api_key)
-        response = sg.send(message)
-        logger.info("Email sent: %s (status %s)", subject, response.status_code)
+        resp = requests.post(_BREVO_URL, json=payload, headers=headers, timeout=15)
+        resp.raise_for_status()
+        logger.info("Email sent: %s (status %s)", subject, resp.status_code)
     except Exception as e:
         logger.error("Failed to send email '%s': %s", subject, e)
