@@ -136,7 +136,7 @@ src/research/runner.py         — wraps TradingAgentsGraph per ticker
 src/portfolio/optimizer.py     — converts decisions → orders
 src/execution/alpaca_client.py — places orders, reads portfolio
 src/db/store.py                — SQLite: trades, decisions, snapshots
-src/notifications/email_alert.py — SendGrid alerts + daily summary
+src/notifications/email_alert.py — Brevo alerts + daily summary
 
 tradingagents/                 — TradingAgents fork (multi-agent graph)
   tradingagents/graph/trading_graph.py  — main graph entry: .propagate()

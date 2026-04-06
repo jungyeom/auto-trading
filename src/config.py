@@ -59,7 +59,7 @@ class Config:
     alpaca_base_url: str
     alpha_vantage_api_key: str
     finnhub_api_key: str
-    sendgrid_api_key: str
+    brevo_api_key: str
 
 def load_config(config_path: str = "config.yaml") -> Config:
     """Load config.yaml and .env, return a validated Config object."""
@@ -108,5 +108,5 @@ def load_config(config_path: str = "config.yaml") -> Config:
         alpaca_base_url=os.getenv("ALPACA_BASE_URL", "https://paper-api.alpaca.markets"),
         alpha_vantage_api_key=_require_env("ALPHA_VANTAGE_API_KEY"),
         finnhub_api_key=_require_env("FINNHUB_API_KEY"),
-        sendgrid_api_key=os.getenv("SENDGRID_API_KEY", ""),
+        brevo_api_key=os.getenv("BREVO_API_KEY", ""),
     )

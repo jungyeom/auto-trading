@@ -201,7 +201,7 @@ Implementation:
 **Cold start for SQLite:** On the first run, create all tables if they don't exist. Set initial `peak_equity` to account balance. `spy_comparison_pct` starts at 0.
 
 **Email summary (sent at end of every pipeline run):**
-- Use the SendGrid Python SDK (`sendgrid` package) to send email over HTTPS. API key stored in `.env` as `SENDGRID_API_KEY`.
+- Use the Brevo HTTP API (via `requests`) to send email over HTTPS. API key stored in `.env` as `BREVO_API_KEY`.
 - Subject: `"Auto-trader daily report — {date}"`.
 - Body includes: new trades placed today, stop-loss sells triggered, existing position thesis checks (hold/sell), current positions with P&L, total portfolio value, portfolio vs SPY performance (simple % comparison since inception), any errors encountered during the run.
 - Immediate alert emails (separate from the daily summary) for: stop-loss triggers, drawdown breaker activation, order failures.
@@ -262,7 +262,7 @@ run_time_et: "16:30"              # 4:30pm ET, after market close
 # === Notifications ===
 email_enabled: true
 email_to: ""                      # Recipient email address
-email_from: ""                    # Verified sender in SendGrid
+email_from: ""                    # Verified sender in Brevo
 ```
 
 ---
@@ -594,7 +594,7 @@ python -m src.main 2>&1
 | News + sentiment | Finnhub | Free tier, 60 req/min |
 | Technical indicators | pandas-ta | Computed locally, no API calls |
 | Database | SQLite (WAL mode) | Decisions, trades, portfolio snapshots |
-| Email | SendGrid | HTTP API via `sendgrid` Python SDK, free tier |
+| Email | Brevo | HTTP API via `requests`, free tier (300 emails/day) |
 | Deployment | DigitalOcean droplet | 1GB/1vCPU + 1GB swap |
 | Scheduling | Cron | Mon–Fri 4:30pm ET (dual entries for EDT/EST) |
 | Portfolio monitoring | Alpaca web dashboard | No custom dashboard for v1 |
@@ -636,7 +636,7 @@ override-dependencies = ["websockets>=13.0"]   # resolves alpaca-trade-api confl
 - Implement `data/cache.py` (file-based cache with configurable TTL)
 - Implement `data/alpha_vantage.py` and `data/finnhub_client.py` with caching
 - Implement `db/models.py` and `db/store.py` (SQLite schema with WAL mode + CRUD)
-- Implement `notifications/email_alert.py` (SendGrid)
+- Implement `notifications/email_alert.py` (Brevo)
 
 ### Days 3–4: Core pipeline
 - Implement `screener/universe.py` (ticker ranking with configurable weights)
@@ -679,7 +679,7 @@ override-dependencies = ["websockets>=13.0"]   # resolves alpaca-trade-api confl
 | Thesis invalidation | Full TradingAgents re-run on existing positions | More thorough than a single LLM call. Cost managed via max_daily_research_runs cap. |
 | Processing | Sequential (one ticker at a time) | Lower memory footprint for 1GB droplet. Can parallelize later. |
 | Fractional shares | Yes | Enables clean equal-weight sizing with ~$1K-per-position amounts. |
-| Notifications | SendGrid | Free tier (100 emails/day). Sends over HTTPS — works on DigitalOcean droplets that block SMTP. |
+| Notifications | Brevo | Free tier (300 emails/day). Sends over HTTPS — works on DigitalOcean droplets that block SMTP. |
 | Monitoring | Alpaca web dashboard | Built-in portfolio/P&L/trade history. No custom dashboard for v1. |
 | Deployment | Dedicated DO droplet (1GB + 1GB swap) | Separate from n8n droplet. Swap as safety buffer. |
 | Scheduling | Cron with EDT/EST guard | Dual cron entries + bash guard prevents double-firing and handles DST. |
@@ -689,7 +689,7 @@ override-dependencies = ["websockets>=13.0"]   # resolves alpaca-trade-api confl
 
 ## 14. Open items (Kevin must complete before Claude Code runs)
 
-- [ ] Create a SendGrid account (sendgrid.com), verify sender identity, and generate an API key
+- [ ] Create a Brevo account (brevo.com), verify sender email, and generate an API key
 - [ ] Create Alpaca account and generate API keys (paper trading)
 - [ ] Create OpenRouter account and add ~$10 in credits
 - [ ] Get free API keys: Alpha Vantage, Finnhub
